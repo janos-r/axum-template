@@ -7,6 +7,7 @@ pub enum Error {
     LoginFail,
     TicketDeleteFailIdNotFound { id: u64 },
     AuthFailNoAuthTokenCookie,
+    AuthFailTokenWrongFormat,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -20,6 +21,9 @@ impl fmt::Display for Error {
             Self::LoginFail => write!(f, "Login fail"),
             Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
             Self::AuthFailNoAuthTokenCookie => write!(f, "You are not logged in"),
+            Self::AuthFailTokenWrongFormat => {
+                write!(f, "Can't parse token, wrong format")
+            }
         }
     }
 }
