@@ -6,6 +6,7 @@ pub enum Error {
     _Generic { description: &'static str },
     LoginFail,
     TicketDeleteFailIdNotFound { id: u64 },
+    AuthFailNoAuthTokenCookie,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -18,13 +19,14 @@ impl fmt::Display for Error {
             Self::_Generic { description } => write!(f, "{description}"),
             Self::LoginFail => write!(f, "Login fail"),
             Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
+            Self::AuthFailNoAuthTokenCookie => write!(f, "You are not logged in"),
         }
     }
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
-        println!("->> {:<12} - into_response - {self}", "ERROR");
+        println!("->> {:<12} - into_response - {self:?}", "ERROR");
         (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
     }
 }
