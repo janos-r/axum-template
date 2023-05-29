@@ -38,7 +38,7 @@ impl ModelController {
 
     pub async fn list_tickets(&self) -> Result<Vec<Ticket>> {
         let store = self.tickets_store.lock().unwrap();
-        let tickets = store.iter().flatten().cloned().collect();
+        let tickets: Vec<Ticket> = store.iter().flatten().cloned().collect();
         Ok(tickets)
     }
 
