@@ -1,4 +1,5 @@
 mod error;
+mod model;
 mod web;
 
 use self::error::{Error, Result};
@@ -18,7 +19,7 @@ async fn main() {
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
-    println!("->> LISTENING on {addr}");
+    println!("->> LISTENING on {addr}\n");
     axum::Server::bind(&addr)
         .serve(routes_all.into_make_service())
         .await

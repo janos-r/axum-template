@@ -23,8 +23,6 @@ async fn api_login(cookies: Cookies, payload: Json<LoginPayload>) -> Result<Json
 
     // TODO: set real token
     cookies.add(Cookie::new(super::AUTH_TOKEN, "user-1.exp.sign"));
-    // TODO: test hello before and after login
-    //     find cookie in login set-cookie header, response cookie, client cookie (login and hello)
 
     let body = Json(json!({
         "result:": {

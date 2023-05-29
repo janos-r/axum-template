@@ -5,6 +5,7 @@ use std::fmt;
 pub enum Error {
     _Generic { description: &'static str },
     LoginFail,
+    TicketDeleteFailIdNotFound { id: u64 },
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -15,7 +16,8 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::_Generic { description } => write!(f, "{description}"),
-            Self::LoginFail => write!(f, "login fail"),
+            Self::LoginFail => write!(f, "Login fail"),
+            Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
         }
     }
 }
