@@ -13,4 +13,5 @@
 
 - graphql with async-graphql
 - CI with github actions
+- spellcheck
 - DB with maybe surrealDb
