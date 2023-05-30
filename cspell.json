@@ -1,0 +1,15 @@
+// run: cspell "*.md" "src/**"
+// add all words as exceptions: cspell "*.md" "src/**" --words-only --unique >> cspell-words.txt
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "dictionaryDefinitions": [
+    {
+      "name": "cspell-words",
+      "path": "./cspell-words.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": ["cspell-words"],
+  "ignorePaths": ["/cspell-words.txt"]
+}

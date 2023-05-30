@@ -12,7 +12,7 @@ pub async fn mw_require_auth<B>(
     req: Request<B>,
     next: Next<B>,
 ) -> Result<Response> {
-    println!("->> {:<12} - mw_require_auth", "MIDDLEWARE");
+    println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
     ctx?;
     Ok(next.run(req).await)
 }

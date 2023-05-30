@@ -8,10 +8,10 @@
   - middleware Response mapping
   - REST CRUD with in-memory mock model
 - Manual Error handling without 3rd party crates
+- Spellcheck with cspell
 
 ## TODOs:
 
 - graphql with async-graphql
 - CI with github actions
-- spellcheck
 - DB with maybe surrealDb

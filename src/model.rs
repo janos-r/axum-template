@@ -1,10 +1,11 @@
-use crate::{Error, Result};
+use crate::{ctx::Ctx, Error, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Ticket {
     pub id: u64,
+    pub creator_id: u64,
     pub title: String,
 }
 
@@ -25,11 +26,12 @@ impl ModelController {
         })
     }
 
-    pub async fn create_ticket(&self, ticket_fc: TicketForCreate) -> Result<Ticket> {
+    pub async fn create_ticket(&self, ctx: Ctx, ticket_fc: TicketForCreate) -> Result<Ticket> {
         let mut store = self.tickets_store.lock().unwrap();
         let id = store.len() as u64;
         let ticket = Ticket {
             id,
+            creator_id: ctx.user_id(),
             title: ticket_fc.title,
         };
         store.push(Some(ticket.clone()));
