@@ -1,5 +1,7 @@
-use axum::{http::StatusCode, response::IntoResponse};
+use axum::{http::StatusCode, response::IntoResponse, Json};
+use serde_json::json;
 use std::fmt;
+use uuid::Uuid;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -32,8 +34,25 @@ impl fmt::Display for Error {
 
 impl IntoResponse for Error {
     fn into_response(self) -> axum::response::Response {
-        println!("->> {:<12} - into_response - {self:?}", "ERROR");
-        (StatusCode::INTERNAL_SERVER_ERROR, self.to_string()).into_response()
+        let uuid = Uuid::new_v4();
+        println!(
+            "->> {:<12} - into_response - Error: {self:?}; uuid: {uuid}",
+            "ERROR"
+        );
+        let status_code = match self {
+            Self::_Generic { .. } | Self::LoginFail => StatusCode::FORBIDDEN,
+            Self::AuthFailNoAuthTokenCookie
+            | Self::AuthFailTokenWrongFormat
+            | Self::AuthFailCtxNotInRequestExt => StatusCode::FORBIDDEN,
+            Self::TicketDeleteFailIdNotFound { .. } => StatusCode::BAD_REQUEST,
+        };
+        let body = Json(json!({
+            "error": {
+                "type": self.to_string(),
+                "req_uuid": uuid.to_string()
+            }
+        }));
+        (status_code, body).into_response()
     }
 }
 

@@ -38,6 +38,7 @@ pub async fn mw_ctx_constructor<B>(
             Err(err)
         }
     };
+    // TODO: token validation with DB
 
     // Store result_ctx in the request extension
     req.extensions_mut().insert(result_ctx);
@@ -59,7 +60,6 @@ fn extract_token(cookies: &Cookies) -> Result<Token> {
         .get(AUTH_TOKEN)
         .ok_or(Error::AuthFailNoAuthTokenCookie)
         .and_then(|c| parse_token(c.value()))
-    // TODO: token validation
 }
 
 // ugly but direct implementation from axum, until "async trait fn" are in stable rust, instead of importing some 3rd party macro
