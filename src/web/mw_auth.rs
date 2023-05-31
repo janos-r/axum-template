@@ -1,11 +1,15 @@
 use axum::{
-    extract::FromRequestParts, http::Request, middleware::Next, response::Response, RequestPartsExt,
+    extract::{FromRequestParts, State},
+    http::Request,
+    middleware::Next,
+    response::Response,
+    RequestPartsExt,
 };
 use lazy_regex::regex_captures;
-use tower_cookies::Cookies;
+use tower_cookies::{Cookie, Cookies};
 
 use super::AUTH_TOKEN;
-use crate::{ctx::Ctx, Error, Result};
+use crate::{ctx::Ctx, model::ModelController, Error, Result};
 
 pub async fn mw_require_auth<B>(
     ctx: Result<Ctx>,
@@ -17,6 +21,30 @@ pub async fn mw_require_auth<B>(
     Ok(next.run(req).await)
 }
 
+pub async fn mw_ctx_constructor<B>(
+    _mc: State<ModelController>,
+    cookies: Cookies,
+    mut req: Request<B>,
+    next: Next<B>,
+) -> Response {
+    println!("->> {:<12} - mw_ctx_constructor", "MIDDLEWARE");
+    let result_ctx: Result<Ctx> = match extract_token(&cookies) {
+        Ok((user_id, _exp, _sign)) => Ok(Ctx::new(user_id)),
+        Err(err) => {
+            // Remove a wrongly formated cookie
+            if err == Error::AuthFailTokenWrongFormat {
+                cookies.remove(Cookie::named(AUTH_TOKEN))
+            }
+            Err(err)
+        }
+    };
+
+    // Store result_ctx in the request extension
+    req.extensions_mut().insert(result_ctx);
+
+    next.run(req).await
+}
+
 type Token = (u64, String, String);
 fn parse_token(token: &str) -> Result<Token> {
     let (_whole, user_id, exp, sign) = regex_captures!(r#"^user-(\d)\.(.+)\.(.+)"#, token)
@@ -26,7 +54,7 @@ fn parse_token(token: &str) -> Result<Token> {
         .map_err(|_| Error::AuthFailTokenWrongFormat)?;
     Ok((user_id, exp.to_owned(), sign.to_owned()))
 }
-fn extract_token(cookies: Cookies) -> Result<Token> {
+fn extract_token(cookies: &Cookies) -> Result<Token> {
     cookies
         .get(AUTH_TOKEN)
         .ok_or(Error::AuthFailNoAuthTokenCookie)
@@ -35,17 +63,14 @@ fn extract_token(cookies: Cookies) -> Result<Token> {
 }
 
 // ugly but direct implementation from axum, until "async trait fn" are in stable rust, instead of importing some 3rd party macro
+// Extractor - makes it possible to specify Ctx as a param - fetches the result from the header parts extension
 impl<S: Send + Sync> FromRequestParts<S> for Ctx {
     type Rejection = Error;
     fn from_request_parts<'life0, 'life1, 'async_trait>(
         parts: &'life0 mut axum::http::request::Parts,
         _state: &'life1 S,
     ) -> core::pin::Pin<
-        Box<
-            dyn core::future::Future<Output = std::result::Result<Self, Self::Rejection>>
-                + core::marker::Send
-                + 'async_trait,
-        >,
+        Box<dyn core::future::Future<Output = Result<Self>> + core::marker::Send + 'async_trait>,
     >
     where
         'life0: 'async_trait,
@@ -53,10 +78,15 @@ impl<S: Send + Sync> FromRequestParts<S> for Ctx {
         Self: 'async_trait,
     {
         Box::pin(async {
-            println!("->> {:<12} - Ctx::from_request_parts", "EXTRACTOR");
-            let cookies = parts.extract::<Cookies>().await.unwrap();
-            let (user_id, exp, sign) = extract_token(cookies)?;
-            Ok(Ctx::new(user_id))
+            println!(
+                "->> {:<12} - Ctx::from_request_parts - extract Ctx from extension",
+                "EXTRACTOR"
+            );
+            parts
+                .extensions
+                .get::<Result<Ctx>>()
+                .ok_or(Error::AuthFailCtxNotInRequestExt)?
+                .clone()
         })
     }
 }

@@ -25,6 +25,10 @@ async fn main() -> Result<()> {
         .merge(web::routes_login::routes())
         .nest("/api", routes_apis)
         .layer(middleware::map_response(main_response_mapper))
+        .layer(middleware::from_fn_with_state(
+            mc.clone(),
+            web::mw_auth::mw_ctx_constructor,
+        ))
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));

@@ -1,13 +1,14 @@
 use axum::{http::StatusCode, response::IntoResponse};
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
     _Generic { description: &'static str },
     LoginFail,
     TicketDeleteFailIdNotFound { id: u64 },
     AuthFailNoAuthTokenCookie,
     AuthFailTokenWrongFormat,
+    AuthFailCtxNotInRequestExt,
 }
 
 pub type Result<T> = core::result::Result<T, Error>;
@@ -24,6 +25,7 @@ impl fmt::Display for Error {
             Self::AuthFailTokenWrongFormat => {
                 write!(f, "Can't parse token, wrong format")
             }
+            Self::AuthFailCtxNotInRequestExt => write!(f, "Internal error"),
         }
     }
 }
