@@ -1,7 +1,14 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use serde::Serialize;
 use serde_json::json;
 use std::fmt;
 use uuid::Uuid;
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ApiError {
+    pub error: Error,
+    pub uuid: Uuid,
+}
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -13,6 +20,7 @@ pub enum Error {
     AuthFailCtxNotInRequestExt,
 }
 
+pub type ApiResult<T> = core::result::Result<T, ApiError>;
 pub type Result<T> = core::result::Result<T, Error>;
 
 impl std::error::Error for Error {}
@@ -32,24 +40,24 @@ impl fmt::Display for Error {
     }
 }
 
-impl IntoResponse for Error {
+impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
+        // TODO: fix
         let uuid = Uuid::new_v4();
-        println!(
-            "->> {:<12} - into_response - Error: {self:?}; uuid: {uuid}",
-            "ERROR"
-        );
-        let status_code = match self {
-            Self::_Generic { .. } | Self::LoginFail => StatusCode::FORBIDDEN,
-            Self::AuthFailNoAuthTokenCookie
-            | Self::AuthFailTokenWrongFormat
-            | Self::AuthFailCtxNotInRequestExt => StatusCode::FORBIDDEN,
-            Self::TicketDeleteFailIdNotFound { .. } => StatusCode::BAD_REQUEST,
+        println!("->> {:<12} - into_response - {self:?}", "ERROR");
+        let status_code = match self.error {
+            Error::_Generic { .. } | Error::LoginFail => StatusCode::FORBIDDEN,
+            Error::AuthFailNoAuthTokenCookie
+            | Error::AuthFailTokenWrongFormat
+            | Error::AuthFailCtxNotInRequestExt => StatusCode::FORBIDDEN,
+            Error::TicketDeleteFailIdNotFound { .. } => StatusCode::BAD_REQUEST,
         };
         let body = Json(json!({
             "error": {
-                "type": self.to_string(),
-                "req_uuid": uuid.to_string()
+                "error": self.error.to_string(),
+                // TODO: uncomment
+                // "uuid": self.uuid.to_string()
+                "uuid": uuid.to_string()
             }
         }));
         (status_code, body).into_response()

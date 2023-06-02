@@ -7,15 +7,21 @@ use axum::{
 };
 use lazy_regex::regex_captures;
 use tower_cookies::{Cookie, Cookies};
+use uuid::Uuid;
 
 use super::AUTH_TOKEN;
-use crate::{ctx::Ctx, model::ModelController, Error, Result};
+use crate::{
+    ctx::Ctx,
+    error::{ApiError, Result},
+    model::ModelController,
+    ApiResult, Error,
+};
 
 pub async fn mw_require_auth<B>(
-    ctx: Result<Ctx>,
+    ctx: ApiResult<Ctx>,
     req: Request<B>,
     next: Next<B>,
-) -> Result<Response> {
+) -> ApiResult<Response> {
     println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
     ctx?;
     Ok(next.run(req).await)
@@ -28,8 +34,10 @@ pub async fn mw_ctx_constructor<B>(
     next: Next<B>,
 ) -> Response {
     println!("->> {:<12} - mw_ctx_constructor", "MIDDLEWARE");
-    let result_ctx: Result<Ctx> = match extract_token(&cookies) {
-        Ok((user_id, _exp, _sign)) => Ok(Ctx::new(user_id)),
+
+    let uuid = Uuid::new_v4();
+    let result_user_id: Result<u64> = match extract_token(&cookies) {
+        Ok((user_id, _exp, _sign)) => Ok(user_id),
         Err(err) => {
             // Remove a wrongly formated cookie
             if err == Error::AuthFailTokenWrongFormat {
@@ -40,8 +48,9 @@ pub async fn mw_ctx_constructor<B>(
     };
     // TODO: token validation with DB
 
-    // Store result_ctx in the request extension
-    req.extensions_mut().insert(result_ctx);
+    // Store Ctx in the request extension
+    let ctx = Ctx::new(result_user_id, uuid);
+    req.extensions_mut().insert(ctx);
 
     next.run(req).await
 }
@@ -65,12 +74,12 @@ fn extract_token(cookies: &Cookies) -> Result<Token> {
 // ugly but direct implementation from axum, until "async trait fn" are in stable rust, instead of importing some 3rd party macro
 // Extractor - makes it possible to specify Ctx as a param - fetches the result from the header parts extension
 impl<S: Send + Sync> FromRequestParts<S> for Ctx {
-    type Rejection = Error;
+    type Rejection = ApiError;
     fn from_request_parts<'life0, 'life1, 'async_trait>(
         parts: &'life0 mut axum::http::request::Parts,
         _state: &'life1 S,
     ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = Result<Self>> + core::marker::Send + 'async_trait>,
+        Box<dyn core::future::Future<Output = ApiResult<Self>> + core::marker::Send + 'async_trait>,
     >
     where
         'life0: 'async_trait,
@@ -82,11 +91,10 @@ impl<S: Send + Sync> FromRequestParts<S> for Ctx {
                 "->> {:<12} - Ctx::from_request_parts - extract Ctx from extension",
                 "EXTRACTOR"
             );
-            parts
-                .extensions
-                .get::<Result<Ctx>>()
-                .ok_or(Error::AuthFailCtxNotInRequestExt)?
-                .clone()
+            parts.extensions.get::<Ctx>().cloned().ok_or(ApiError {
+                uuid: Uuid::new_v4(),
+                error: Error::AuthFailCtxNotInRequestExt,
+            })
         })
     }
 }

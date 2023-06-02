@@ -1,11 +1,12 @@
 #![allow(unused)]
+// TODO: uncomment
 
 mod ctx;
 mod error;
 mod model;
 mod web;
 
-use self::error::{Error, Result};
+use self::error::*;
 use axum::response::Response;
 use axum::routing::get_service;
 use axum::{middleware, Router};
@@ -15,7 +16,7 @@ use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 
 #[tokio::main]
-async fn main() -> Result<()> {
+async fn main() -> ApiResult<()> {
     let mc = ModelController::new().await?;
 
     let routes_apis = web::routes_tickets::routes(mc.clone())
