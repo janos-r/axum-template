@@ -1,19 +1,8 @@
-use axum::{
-    extract::{FromRequestParts, State},
-    http::Request,
-    middleware::Next,
-    response::Response,
-};
+use crate::{ctx::Ctx, error::Result, model::ModelController, ApiResult, Error};
+use axum::{extract::State, http::Request, middleware::Next, response::Response};
 use lazy_regex::regex_captures;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
-
-use crate::{
-    ctx::Ctx,
-    error::{ApiError, Result},
-    model::ModelController,
-    ApiResult, Error,
-};
 
 pub const AUTH_TOKEN: &str = "auth-token";
 
@@ -35,7 +24,7 @@ pub async fn mw_ctx_constructor<B>(
     let result_user_id: Result<u64> = match extract_token(&cookies) {
         Ok((user_id, _exp, _sign)) => Ok(user_id),
         Err(err) => {
-            // Remove a wrongly formated cookie
+            // Remove a wrongly formatted cookie
             if err == Error::AuthFailTokenWrongFormat {
                 cookies.remove(Cookie::named(AUTH_TOKEN))
             }
@@ -65,34 +54,6 @@ fn extract_token(cookies: &Cookies) -> Result<Token> {
         .get(AUTH_TOKEN)
         .ok_or(Error::AuthFailNoAuthTokenCookie)
         .and_then(|c| parse_token(c.value()))
-}
-
-// ugly but direct implementation from axum, until "async trait fn" are in stable rust, instead of importing some 3rd party macro
-// Extractor - makes it possible to specify Ctx as a param - fetches the result from the header parts extension
-impl<S: Send + Sync> FromRequestParts<S> for Ctx {
-    type Rejection = ApiError;
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut axum::http::request::Parts,
-        _state: &'life1 S,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = ApiResult<Self>> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async {
-            println!(
-                "->> {:<12} - Ctx::from_request_parts - extract Ctx from extension",
-                "EXTRACTOR"
-            );
-            parts.extensions.get::<Ctx>().cloned().ok_or(ApiError {
-                req_id: Uuid::new_v4(),
-                error: Error::AuthFailCtxNotInRequestExt,
-            })
-        })
-    }
 }
 
 #[cfg(test)]

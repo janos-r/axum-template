@@ -55,7 +55,10 @@ impl IntoResponse for ApiError {
                 "uuid": self.req_id.to_string()
             }
         }));
-        (status_code, body).into_response()
+        let mut response = (status_code, body).into_response();
+        // Insert the Error into the response - for the logger
+        response.extensions_mut().insert(self.error);
+        response
     }
 }
 

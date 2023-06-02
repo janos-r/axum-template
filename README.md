@@ -3,19 +3,16 @@
 ## Features implemented
 
 - Axum
-  - Query and Path get example - [routes_hello.rs](./src/web/routes_hello.rs)
+  - Query and Path get examples
   - login with cookies
-  - middleware Response mapping
   - REST CRUD with in-memory mock model
 - Manual Error handling without 3rd party crates
+  - Errors respond with request IDs
+  - Debug and Display variants for server and client
+- Request json logs
 - Spellcheck with cspell
 
 ## TODOs:
-
-- log every request - for analysis and error-by-uuid
-  - add the error to the extensions
-  - compose a full request log at the last layer
-  - extract the client error into it
 
 - graphql with async-graphql
 - CI with github actions
