@@ -13,8 +13,6 @@
 ## TODOs:
 
 - log every request - for analysis and error-by-uuid
-  - compose uuid from the beginning on a layer and save in extension
-  - extract it in an error
   - add the error to the extensions
   - compose a full request log at the last layer
   - extract the client error into it

@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
 use crate::model::{ModelController, Ticket, TicketForCreate};
-use crate::{ApiResult, Result};
+use crate::ApiResult;
 use axum::extract::{Path, State};
 use axum::routing::{delete, post};
 use axum::{Json, Router};
@@ -30,9 +30,10 @@ async fn list_tickets(State(mc): State<ModelController>) -> ApiResult<Json<Vec<T
 
 async fn delete_ticket(
     State(mc): State<ModelController>,
+    ctx: Ctx,
     Path(id): Path<u64>,
 ) -> ApiResult<Json<Ticket>> {
     println!("->> {:<12} - delete_ticket", "HANDLER");
-    let tickets = mc.delete_ticket(id).await?;
+    let tickets = mc.delete_ticket(id, ctx).await?;
     Ok(Json(tickets))
 }

@@ -1,5 +1,4 @@
 use axum::{http::StatusCode, response::IntoResponse, Json};
-use serde::Serialize;
 use serde_json::json;
 use std::fmt;
 use uuid::Uuid;
@@ -7,7 +6,7 @@ use uuid::Uuid;
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ApiError {
     pub error: Error,
-    pub uuid: Uuid,
+    pub req_id: Uuid,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -42,8 +41,6 @@ impl fmt::Display for Error {
 
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
-        // TODO: fix
-        let uuid = Uuid::new_v4();
         println!("->> {:<12} - into_response - {self:?}", "ERROR");
         let status_code = match self.error {
             Error::_Generic { .. } | Error::LoginFail => StatusCode::FORBIDDEN,
@@ -55,9 +52,7 @@ impl IntoResponse for ApiError {
         let body = Json(json!({
             "error": {
                 "error": self.error.to_string(),
-                // TODO: uncomment
-                // "uuid": self.uuid.to_string()
-                "uuid": uuid.to_string()
+                "uuid": self.req_id.to_string()
             }
         }));
         (status_code, body).into_response()

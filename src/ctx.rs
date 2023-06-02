@@ -22,7 +22,7 @@ impl Ctx {
     pub fn user_id(&self) -> ApiResult<u64> {
         self.result_user_id.clone().map_err(|error| ApiError {
             error,
-            uuid: self.req_id,
+            req_id: self.req_id,
         })
     }
 

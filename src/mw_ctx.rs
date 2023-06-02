@@ -3,13 +3,11 @@ use axum::{
     http::Request,
     middleware::Next,
     response::Response,
-    RequestPartsExt,
 };
 use lazy_regex::regex_captures;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
-use super::AUTH_TOKEN;
 use crate::{
     ctx::Ctx,
     error::{ApiError, Result},
@@ -17,13 +15,11 @@ use crate::{
     ApiResult, Error,
 };
 
-pub async fn mw_require_auth<B>(
-    ctx: ApiResult<Ctx>,
-    req: Request<B>,
-    next: Next<B>,
-) -> ApiResult<Response> {
+pub const AUTH_TOKEN: &str = "auth-token";
+
+pub async fn mw_require_auth<B>(ctx: Ctx, req: Request<B>, next: Next<B>) -> ApiResult<Response> {
     println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
-    ctx?;
+    ctx.user_id()?;
     Ok(next.run(req).await)
 }
 
@@ -92,7 +88,7 @@ impl<S: Send + Sync> FromRequestParts<S> for Ctx {
                 "EXTRACTOR"
             );
             parts.extensions.get::<Ctx>().cloned().ok_or(ApiError {
-                uuid: Uuid::new_v4(),
+                req_id: Uuid::new_v4(),
                 error: Error::AuthFailCtxNotInRequestExt,
             })
         })

@@ -1,9 +1,7 @@
-#![allow(unused)]
-// TODO: uncomment
-
 mod ctx;
 mod error;
 mod model;
+mod mw_ctx;
 mod web;
 
 use self::error::*;
@@ -20,7 +18,7 @@ async fn main() -> ApiResult<()> {
     let mc = ModelController::new().await?;
 
     let routes_apis = web::routes_tickets::routes(mc.clone())
-        .route_layer(middleware::from_fn(web::mw_auth::mw_require_auth));
+        .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
     let routes_all = Router::new()
         .merge(web::routes_hello::routes())
         .merge(web::routes_login::routes())
@@ -28,7 +26,7 @@ async fn main() -> ApiResult<()> {
         .layer(middleware::map_response(main_response_mapper))
         .layer(middleware::from_fn_with_state(
             mc.clone(),
-            web::mw_auth::mw_ctx_constructor,
+            mw_ctx::mw_ctx_constructor,
         ))
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());

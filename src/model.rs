@@ -1,7 +1,6 @@
 use crate::{ctx::Ctx, ApiError, ApiResult, Error};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Ticket {
@@ -45,13 +44,11 @@ impl ModelController {
         Ok(tickets)
     }
 
-    pub async fn delete_ticket(&self, id: u64) -> ApiResult<Ticket> {
+    pub async fn delete_ticket(&self, id: u64, ctx: Ctx) -> ApiResult<Ticket> {
         let mut store = self.tickets_store.lock().unwrap();
-        // let ticket = store.get_mut(id as usize).and_then(|t| t.take());
         let ticket = store.get_mut(id as usize).and_then(Option::take);
         ticket.ok_or(ApiError {
-            // TODO: fix
-            uuid: Uuid::new_v4(),
+            req_id: ctx.req_id(),
             error: Error::TicketDeleteFailIdNotFound { id },
         })
     }
