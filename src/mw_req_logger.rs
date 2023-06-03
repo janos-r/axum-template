@@ -11,7 +11,9 @@ use std::time::{SystemTime, UNIX_EPOCH};
 struct RequestLog {
     req_method: String,
     req_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
     user: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     timestamp: String,
     req_id: String,

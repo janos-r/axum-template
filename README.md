@@ -11,9 +11,12 @@
   - Debug and Display variants for server and client
 - Request json logs
 - Spellcheck with cspell
+- graphql with async-graphql
 
 ## TODOs:
 
-- graphql with async-graphql
+- gql
+  - state - replicate rest api (model_controller)
+  - auth - restriction, ctx
 - CI with github actions
 - DB with maybe surrealDb
