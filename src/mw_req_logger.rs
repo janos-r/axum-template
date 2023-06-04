@@ -32,6 +32,7 @@ pub async fn mw_req_logger(ctx: Ctx, uri: Uri, req_method: Method, res: Response
             .as_millis()
             .to_string(),
     };
-    println!("->> {:<12} - mw_req_logger: \n{}\n", "LOGGER", json!(log));
+    println!("->> {:<12} - mw_req_logger:", "LOGGER",);
+    println!("{:4}{}", "", json!(log));
     res
 }

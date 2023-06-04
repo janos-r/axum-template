@@ -11,12 +11,12 @@
   - Debug and Display variants for server and client
 - Request json logs
 - Spellcheck with cspell
-- graphql with async-graphql
+- Graphql with async-graphql
 
 ## TODOs:
 
-- gql
-  - state - replicate rest api (model_controller)
-  - auth - restriction, ctx
+- fix - log errors from gql
+  - somehow store in the request or ctx - to pick up with the logger mw
+  - or separate error logs from request logs
 - CI with github actions
 - DB with maybe surrealDb

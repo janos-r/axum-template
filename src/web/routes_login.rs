@@ -36,7 +36,12 @@ async fn api_login(
     };
 
     // TODO: set real token
-    cookies.add(Cookie::new(crate::mw_ctx::AUTH_TOKEN, "user-1.exp.sign"));
+    cookies.add(
+        Cookie::build(crate::mw_ctx::AUTH_TOKEN, "user-1.exp.sign")
+            // if not set, the path defaults to the path from which it was called - prohibiting gql on root if login is on /api
+            .path("/")
+            .finish(),
+    );
 
     Ok(Json(LoginResult {
         result: LoginSuccess { success: true },

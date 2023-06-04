@@ -1,3 +1,4 @@
+use async_graphql::ErrorExtensions;
 use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde_json::json;
 use std::fmt;
@@ -26,7 +27,7 @@ pub type ApiResult<T> = core::result::Result<T, ApiError>;
 pub type Result<T> = core::result::Result<T, Error>;
 
 impl std::error::Error for Error {}
-// We don't implement Error for ApiError, because it doesn't implement Display, because it's only purpose is to compose a Response
+// We don't implement Error for ApiError, because it doesn't implement Display
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -43,6 +44,7 @@ impl fmt::Display for Error {
     }
 }
 
+// REST response
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         println!("->> {:<12} - into_response - {self:?}", "ERROR");
@@ -63,6 +65,14 @@ impl IntoResponse for ApiError {
         // Insert the Error into the response - for the logger
         response.extensions_mut().insert(self.error);
         response
+    }
+}
+
+// GQL response
+impl From<ApiError> for async_graphql::Error {
+    fn from(value: ApiError) -> Self {
+        Self::new(value.error.to_string())
+            .extend_with(|_, e| e.set("req_id", value.req_id.to_string()))
     }
 }
 

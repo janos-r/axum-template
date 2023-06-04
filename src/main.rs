@@ -7,7 +7,7 @@ mod mw_req_logger;
 mod web;
 
 use self::error::*;
-use async_graphql::{http::GraphiQLSource, EmptyMutation, EmptySubscription, Schema};
+use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
 use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
 use axum::{
     extract::Extension,
@@ -16,20 +16,21 @@ use axum::{
     routing::{get, get_service},
     Router,
 };
-use graphql::model::{ApiSchema, QueryRoot};
+use ctx::Ctx;
+use graphql::{mutation_root::MutationRoot, query_root::QueryRoot};
 use model::ModelController;
 use mw_req_logger::mw_req_logger;
-// use starwars::{QueryRoot, StarWars, StarWarsSchema};
 use std::net::SocketAddr;
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 
+type ApiSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 async fn graphql_handler(
-    // schema: Extension<StarWarsSchema>,
     schema: Extension<ApiSchema>,
+    ctx: Ctx,
     req: GraphQLRequest,
 ) -> GraphQLResponse {
-    schema.execute(req.into_inner()).await.into()
+    schema.execute(req.into_inner().data(ctx)).await.into()
 }
 
 async fn graphiql() -> impl IntoResponse {
@@ -40,8 +41,8 @@ async fn graphiql() -> impl IntoResponse {
 async fn main() -> ApiResult<()> {
     let mc = ModelController::new().await?;
 
-    let schema = Schema::build(QueryRoot, EmptyMutation, EmptySubscription)
-        // .data(StarWars::new())
+    let schema: ApiSchema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
+        .data(mc.clone())
         .finish();
 
     let gql = Router::new()
@@ -56,6 +57,7 @@ async fn main() -> ApiResult<()> {
         .merge(web::routes_login::routes())
         .nest("/api", routes_tickets)
         .layer(middleware::map_response(mw_req_logger))
+        // this is where Ctx gets created, with every new request
         .layer(middleware::from_fn_with_state(
             mc.clone(),
             mw_ctx::mw_ctx_constructor,

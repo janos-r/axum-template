@@ -33,7 +33,7 @@ pub async fn mw_ctx_constructor<B>(
     };
     // TODO: token validation with DB
 
-    // Store Ctx in the request extension
+    // Store Ctx in the request extension, for extracting in rest handlers
     let ctx = Ctx::new(result_user_id, uuid);
     req.extensions_mut().insert(ctx);
 
