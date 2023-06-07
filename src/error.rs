@@ -1,23 +1,26 @@
 use async_graphql::ErrorExtensions;
 use axum::{http::StatusCode, response::IntoResponse, Json};
+use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::fmt;
 use uuid::Uuid;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct ApiError {
     pub error: Error,
     pub req_id: Uuid,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Error {
-    _Generic { description: &'static str },
+    Generic { description: String },
     LoginFail,
     TicketDeleteFailIdNotFound { id: u64 },
     AuthFailNoAuthTokenCookie,
     AuthFailTokenWrongFormat,
     AuthFailCtxNotInRequestExt,
+    // TODO: link source
+    Serde { source: String },
 }
 
 /// ApiError has to have the req_id to report to the client and implements IntoResponse.
@@ -27,12 +30,13 @@ pub type ApiResult<T> = core::result::Result<T, ApiError>;
 pub type Result<T> = core::result::Result<T, Error>;
 
 impl std::error::Error for Error {}
-// We don't implement Error for ApiError, because it doesn't implement Display
+// We don't implement Error for ApiError, because it doesn't implement Display.
+// ApiError should be used just for debugging. Also implementing Display for it triggers a generic impl From ApiError for gqlError on async-graphql - and we want to implement it ourselves, to always include extensions. It would create conflicting implementations.
 
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            Self::_Generic { description } => write!(f, "{description}"),
+            Self::Generic { description } => write!(f, "{description}"),
             Self::LoginFail => write!(f, "Login fail"),
             Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
             Self::AuthFailNoAuthTokenCookie => write!(f, "You are not logged in"),
@@ -40,6 +44,7 @@ impl fmt::Display for Error {
                 write!(f, "Can't parse token, wrong format")
             }
             Self::AuthFailCtxNotInRequestExt => write!(f, "Internal error"),
+            Self::Serde { .. } => write!(f, "Internal error"),
         }
     }
 }
@@ -49,11 +54,12 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         println!("->> {:<12} - into_response - {self:?}", "ERROR");
         let status_code = match self.error {
-            Error::_Generic { .. } | Error::LoginFail => StatusCode::FORBIDDEN,
+            Error::Generic { .. } | Error::LoginFail => StatusCode::FORBIDDEN,
             Error::AuthFailNoAuthTokenCookie
             | Error::AuthFailTokenWrongFormat
             | Error::AuthFailCtxNotInRequestExt => StatusCode::FORBIDDEN,
             Error::TicketDeleteFailIdNotFound { .. } => StatusCode::BAD_REQUEST,
+            Error::Serde { .. } => StatusCode::BAD_REQUEST,
         };
         let body = Json(json!({
             "error": {
@@ -62,17 +68,22 @@ impl IntoResponse for ApiError {
             }
         }));
         let mut response = (status_code, body).into_response();
-        // Insert the Error into the response - for the logger
+        // Insert the real Error into the response - for the logger
         response.extensions_mut().insert(self.error);
         response
     }
 }
+
+// for sending serialized keys through gql extensions
+pub const ERROR_SER_KEY: &str = "error_ser";
 
 // GQL response
 impl From<ApiError> for async_graphql::Error {
     fn from(value: ApiError) -> Self {
         Self::new(value.error.to_string())
             .extend_with(|_, e| e.set("req_id", value.req_id.to_string()))
+            // storing for the logger
+            .extend_with(|_, e| e.set(ERROR_SER_KEY, serde_json::to_string(&value.error).unwrap()))
     }
 }
 
@@ -80,8 +91,8 @@ impl From<ApiError> for async_graphql::Error {
 mod tests {
     #[test]
     fn display_description() {
-        let err = super::Error::_Generic {
-            description: "super description",
+        let err = super::Error::Generic {
+            description: "super description".to_owned(),
         };
         assert_eq!(format!("{err}"), "super description");
         assert_eq!(err.to_string(), "super description");

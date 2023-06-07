@@ -7,8 +7,7 @@ mod mw_req_logger;
 mod web;
 
 use self::error::*;
-use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema};
-use async_graphql_axum::{GraphQLRequest, GraphQLResponse};
+use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema, Value};
 use axum::{
     extract::Extension,
     middleware,
@@ -28,9 +27,30 @@ type ApiSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
 async fn graphql_handler(
     schema: Extension<ApiSchema>,
     ctx: Ctx,
-    req: GraphQLRequest,
-) -> GraphQLResponse {
-    schema.execute(req.into_inner().data(ctx)).await.into()
+    req: async_graphql_axum::GraphQLRequest,
+) -> axum::response::Response {
+    fn extract_error(resp: &mut async_graphql::Response) -> Vec<Error> {
+        let mut errors = Vec::new();
+        for error in &mut resp.errors {
+            let Some(extensions) = &mut error.extensions else { continue };
+            let Some(value) = extensions.get(ERROR_SER_KEY) else { continue };
+            let Value::String(s) = value else { continue };
+            let error: Error = serde_json::from_str(s).unwrap();
+            errors.push(error);
+            extensions.unset(ERROR_SER_KEY);
+        }
+        errors
+    }
+    let mut gql_resp: async_graphql::Response = schema.execute(req.into_inner().data(ctx)).await;
+    // Remove error extensions and deserialize errors
+    let error = extract_error(&mut gql_resp);
+    // Normally only this is recommended as the result of the handler, but it seams ok to repeatedly call .into_response
+    let mut response = async_graphql_axum::GraphQLResponse::from(gql_resp).into_response();
+    // Insert the first real Error into the response - for the logger
+    if let Some(e) = error.into_iter().next() {
+        response.extensions_mut().insert(e);
+    }
+    response
 }
 
 async fn graphiql() -> impl IntoResponse {
@@ -43,8 +63,8 @@ async fn main() -> ApiResult<()> {
 
     let schema: ApiSchema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(mc.clone())
+        // .extension(extensions::Analyzer)
         .finish();
-
     let gql = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
         .layer(Extension(schema));

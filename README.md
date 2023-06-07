@@ -15,8 +15,5 @@
 
 ## TODOs:
 
-- fix - log errors from gql
-  - somehow store in the request or ctx - to pick up with the logger mw
-  - or separate error logs from request logs
 - CI with github actions
 - DB with maybe surrealDb
