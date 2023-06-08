@@ -9,11 +9,14 @@
 - Manual Error handling without 3rd party crates
   - Errors respond with request IDs
   - Debug and Display variants for server and client
-- Request json logs
 - Spellcheck with cspell
 - Graphql with async-graphql
+- Request logs
+  - For every request one log
+  - Include req_id, error, logged in user
+  - For both REST and GraphQL
+- CI with github actions
 
 ## TODOs:
 
-- CI with github actions
 - DB with maybe surrealDb

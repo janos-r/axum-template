@@ -19,7 +19,6 @@ pub enum Error {
     AuthFailNoAuthTokenCookie,
     AuthFailTokenWrongFormat,
     AuthFailCtxNotInRequestExt,
-    // TODO: link source
     Serde { source: String },
 }
 
@@ -44,7 +43,7 @@ impl fmt::Display for Error {
                 write!(f, "Can't parse token, wrong format")
             }
             Self::AuthFailCtxNotInRequestExt => write!(f, "Internal error"),
-            Self::Serde { .. } => write!(f, "Internal error"),
+            Self::Serde { source } => write!(f, "Serde error - {source}"),
         }
     }
 }
@@ -82,8 +81,16 @@ impl From<ApiError> for async_graphql::Error {
     fn from(value: ApiError) -> Self {
         Self::new(value.error.to_string())
             .extend_with(|_, e| e.set("req_id", value.req_id.to_string()))
-            // storing for the logger
+            // storing the original as json in the error extension - for the logger
             .extend_with(|_, e| e.set(ERROR_SER_KEY, serde_json::to_string(&value.error).unwrap()))
+    }
+}
+
+impl From<serde_json::Error> for Error {
+    fn from(value: serde_json::Error) -> Self {
+        Self::Serde {
+            source: value.to_string(),
+        }
     }
 }
 

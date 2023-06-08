@@ -1,6 +1,6 @@
 [package]
-name = "axum-intro"
-version = "0.1.0"
+name = "axum-template"
+version = "0.1.1"
 edition = "2021"
 
 [dependencies]
