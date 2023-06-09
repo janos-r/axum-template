@@ -1,4 +1,8 @@
-use crate::{ctx::Ctx, ApiError, ApiResult, Error};
+use crate::{
+    ctx::Ctx,
+    error::{ApiError, Error, Result},
+    ApiResult,
+};
 use async_graphql::{InputObject, SimpleObject};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
@@ -21,7 +25,7 @@ pub struct ModelController {
 }
 
 impl ModelController {
-    pub async fn new() -> ApiResult<Self> {
+    pub async fn new() -> Result<Self> {
         Ok(Self {
             tickets_store: Arc::default(),
         })

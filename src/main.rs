@@ -6,61 +6,43 @@ mod mw_ctx;
 mod mw_req_logger;
 mod web;
 
-use self::error::*;
-use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema, Value};
+use async_graphql::{EmptySubscription, Schema};
 use axum::{
     extract::Extension,
     middleware,
-    response::{self, IntoResponse},
     routing::{get, get_service},
     Router,
 };
-use ctx::Ctx;
-use graphql::{mutation_root::MutationRoot, query_root::QueryRoot};
+use error::{ApiResult, Result};
+use graphql::{
+    graphiql, graphql_handler, mutation_root::MutationRoot, query_root::QueryRoot, ApiSchema,
+};
 use model::ModelController;
 use mw_req_logger::mw_req_logger;
-use std::net::SocketAddr;
+use std::net::{Ipv4Addr, SocketAddr};
+use surrealdb::{engine::local::Mem, Surreal};
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 
-type ApiSchema = Schema<QueryRoot, MutationRoot, EmptySubscription>;
-async fn graphql_handler(
-    schema: Extension<ApiSchema>,
-    ctx: Ctx,
-    req: async_graphql_axum::GraphQLRequest,
-) -> axum::response::Response {
-    let mut gql_resp: async_graphql::Response = schema.execute(req.into_inner().data(ctx)).await;
-    // Remove error extensions and deserialize errors
-    let mut errors = Vec::new();
-    for error in &mut gql_resp.errors {
-        let Some(extensions) = &mut error.extensions else { continue };
-        let Some(value) = extensions.get(ERROR_SER_KEY) else { continue };
-        let Value::String(s) = value else { continue };
-        let error: Error = serde_json::from_str(s).unwrap_or_else(Error::from);
-        errors.push(error);
-        extensions.unset(ERROR_SER_KEY);
-    }
-    // Normally only this is recommended as the result of the handler, but it seams ok to repeatedly call .into_response
-    let mut response = async_graphql_axum::GraphQLResponse::from(gql_resp).into_response();
-    // Insert the first real Error into the response - for the logger
-    if let Some(e) = errors.into_iter().next() {
-        response.extensions_mut().insert(e);
-    }
-    response
-}
-
-async fn graphiql() -> impl IntoResponse {
-    response::Html(GraphiQLSource::build().endpoint("/").finish())
-}
-
 #[tokio::main]
-async fn main() -> ApiResult<()> {
+async fn main() -> Result<()> {
     // DB
     let mc = ModelController::new().await?;
+
+    // NOTE: For connection to an existing DB
+    // let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 8000));
+    // let db = Surreal::new::<Ws>(addr).await?;
+    let db = Surreal::new::<Mem>(()).await?;
+    println!("->> DB connected in memory");
+    let version = db.version().await?;
+    println!("->> DB version: {version}");
+    // Select a specific namespace / database
+    db.use_ns("namespace").use_db("database").await?;
 
     // GQL
     let schema: ApiSchema = Schema::build(QueryRoot, MutationRoot, EmptySubscription)
         .data(mc.clone())
+        .data(db.clone())
         .finish();
     let gql = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
@@ -89,7 +71,7 @@ async fn main() -> ApiResult<()> {
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 8080));
     println!("->> LISTENING on {addr}\n");
 
     axum::Server::bind(&addr)

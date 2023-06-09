@@ -1,3 +1,4 @@
 # New Words
 Graphi
 graphiql
+surrealdb

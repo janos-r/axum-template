@@ -20,6 +20,7 @@ pub enum Error {
     AuthFailTokenWrongFormat,
     AuthFailCtxNotInRequestExt,
     Serde { source: String },
+    SurrealDb { source: String },
 }
 
 /// ApiError has to have the req_id to report to the client and implements IntoResponse.
@@ -32,6 +33,7 @@ impl std::error::Error for Error {}
 // We don't implement Error for ApiError, because it doesn't implement Display.
 // ApiError should be used just for debugging. Also implementing Display for it triggers a generic impl From ApiError for gqlError on async-graphql - and we want to implement it ourselves, to always include extensions. It would create conflicting implementations.
 
+const INTERNAL: &str = "Internal error";
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
@@ -42,23 +44,27 @@ impl fmt::Display for Error {
             Self::AuthFailTokenWrongFormat => {
                 write!(f, "Can't parse token, wrong format")
             }
-            Self::AuthFailCtxNotInRequestExt => write!(f, "Internal error"),
             Self::Serde { source } => write!(f, "Serde error - {source}"),
+            Self::AuthFailCtxNotInRequestExt => write!(f, "{INTERNAL}"),
+            Self::SurrealDb { .. } => write!(f, "{INTERNAL}"),
         }
     }
 }
 
-// REST response
+// REST error response
 impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         println!("->> {:<12} - into_response - {self:?}", "ERROR");
         let status_code = match self.error {
-            Error::Generic { .. } | Error::LoginFail => StatusCode::FORBIDDEN,
-            Error::AuthFailNoAuthTokenCookie
+            Error::TicketDeleteFailIdNotFound { .. } | Error::Serde { .. } => {
+                StatusCode::BAD_REQUEST
+            }
+            Error::Generic { .. }
+            | Error::LoginFail
+            | Error::AuthFailNoAuthTokenCookie
             | Error::AuthFailTokenWrongFormat
-            | Error::AuthFailCtxNotInRequestExt => StatusCode::FORBIDDEN,
-            Error::TicketDeleteFailIdNotFound { .. } => StatusCode::BAD_REQUEST,
-            Error::Serde { .. } => StatusCode::BAD_REQUEST,
+            | Error::AuthFailCtxNotInRequestExt
+            | Error::SurrealDb { .. } => StatusCode::FORBIDDEN,
         };
         let body = Json(json!({
             "error": {
@@ -76,7 +82,7 @@ impl IntoResponse for ApiError {
 // for sending serialized keys through gql extensions
 pub const ERROR_SER_KEY: &str = "error_ser";
 
-// GQL response
+// GQL error response
 impl From<ApiError> for async_graphql::Error {
     fn from(value: ApiError) -> Self {
         Self::new(value.error.to_string())
@@ -86,9 +92,18 @@ impl From<ApiError> for async_graphql::Error {
     }
 }
 
+// External Errors
 impl From<serde_json::Error> for Error {
     fn from(value: serde_json::Error) -> Self {
         Self::Serde {
+            source: value.to_string(),
+        }
+    }
+}
+
+impl From<surrealdb::Error> for Error {
+    fn from(value: surrealdb::Error) -> Self {
+        Self::SurrealDb {
             source: value.to_string(),
         }
     }
