@@ -33,7 +33,25 @@ pub type Result<T> = core::result::Result<T, Error>;
 
 impl std::error::Error for Error {}
 // We don't implement Error for ApiError, because it doesn't implement Display.
-// ApiError should be used just for debugging. Also implementing Display for it triggers a generic impl From ApiError for gqlError on async-graphql - and we want to implement it ourselves, to always include extensions. It would create conflicting implementations.
+// Implementing Display for it triggers a generic impl From ApiError for gql-Error on async-graphql - and we want to implement it ourselves, to always include extensions on Errors. It would create conflicting implementations.
+
+// for slightly less verbose error mappings
+pub trait IntoApiError {
+    fn into_api_error(self, ctx: &Ctx) -> ApiError;
+}
+impl<E: Into<Error>> IntoApiError for E {
+    fn into_api_error(self, ctx: &Ctx) -> ApiError {
+        ApiError {
+            req_id: ctx.req_id(),
+            error: self.into(),
+        }
+    }
+}
+impl ApiError {
+    pub fn from<T: Into<Error>>(ctx: &Ctx) -> impl FnOnce(T) -> ApiError + '_ {
+        |e| e.into_api_error(ctx)
+    }
+}
 
 const INTERNAL: &str = "Internal error";
 impl fmt::Display for Error {
@@ -107,18 +125,6 @@ impl From<surrealdb::Error> for Error {
     fn from(value: surrealdb::Error) -> Self {
         Self::SurrealDb {
             source: value.to_string(),
-        }
-    }
-}
-
-pub trait IntoApiError {
-    fn into_api_error(self, ctx: &Ctx) -> ApiError;
-}
-impl<E: Into<crate::error::Error>> IntoApiError for E {
-    fn into_api_error(self, ctx: &Ctx) -> ApiError {
-        ApiError {
-            req_id: ctx.req_id(),
-            error: self.into(),
         }
     }
 }

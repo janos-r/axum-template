@@ -1,7 +1,6 @@
 mod ctx;
 mod error;
 mod graphql;
-mod model_no_db;
 mod mw_ctx;
 mod mw_req_logger;
 mod service;
@@ -18,8 +17,8 @@ use error::{ApiResult, Result};
 use graphql::{
     graphiql, graphql_handler, mutation_root::MutationRoot, query_root::QueryRoot, ApiSchema,
 };
-use model_no_db::ModelController;
 use mw_req_logger::mw_req_logger;
+use service::ticket_no_db::ModelController;
 use std::net::{Ipv4Addr, SocketAddr};
 use surrealdb::{
     engine::local::{Db as LocalDb, Mem},

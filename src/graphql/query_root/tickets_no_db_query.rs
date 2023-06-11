@@ -1,4 +1,4 @@
-use crate::model_no_db::{ModelController, TicketNoDb};
+use crate::service::ticket_no_db::{ModelController, TicketNoDb};
 use async_graphql::{Context, Object, Result};
 
 pub struct TicketsNoDbQuery;

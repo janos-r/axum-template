@@ -1,6 +1,6 @@
 use crate::{
     ctx::Ctx,
-    error::{ApiResult, IntoApiError},
+    error::{ApiError, ApiResult},
     Db,
 };
 use async_graphql::{ComplexObject, InputObject, SimpleObject};
@@ -36,7 +36,7 @@ impl<'a> TicketService<'a> {
         self.db
             .select("tickets")
             .await
-            .map_err(|e| e.into_api_error(self.ctx))
+            .map_err(ApiError::from(self.ctx))
     }
 
     pub async fn create_ticket(&self, ct_input: CreateTicketInput) -> ApiResult<Ticket> {
@@ -48,13 +48,13 @@ impl<'a> TicketService<'a> {
                 title: ct_input.title,
             })
             .await
-            .map_err(|e| e.into_api_error(self.ctx))
+            .map_err(ApiError::from(self.ctx))
     }
 
     pub async fn delete_ticket(&self, id: String) -> ApiResult<Ticket> {
         self.db
             .delete(("tickets", id))
             .await
-            .map_err(|e| e.into_api_error(self.ctx))
+            .map_err(ApiError::from(self.ctx))
     }
 }

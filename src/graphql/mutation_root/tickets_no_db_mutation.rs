@@ -1,7 +1,9 @@
 use crate::{
     ctx::Ctx,
-    model_no_db::{ModelController, TicketNoDb},
-    service::ticket::CreateTicketInput,
+    service::{
+        ticket::CreateTicketInput,
+        ticket_no_db::{ModelController, TicketNoDb},
+    },
 };
 use async_graphql::{Context, Object, Result};
 

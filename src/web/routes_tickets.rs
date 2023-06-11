@@ -1,6 +1,6 @@
 use crate::ctx::Ctx;
-use crate::model_no_db::{ModelController, TicketNoDb};
 use crate::service::ticket::CreateTicketInput;
+use crate::service::ticket_no_db::{ModelController, TicketNoDb};
 use crate::ApiResult;
 use axum::extract::{Path, State};
 use axum::routing::{delete, post};
