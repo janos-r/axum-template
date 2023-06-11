@@ -5,6 +5,8 @@ use serde_json::json;
 use std::fmt;
 use uuid::Uuid;
 
+use crate::ctx::Ctx;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ApiError {
     pub error: Error,
@@ -69,7 +71,7 @@ impl IntoResponse for ApiError {
         let body = Json(json!({
             "error": {
                 "error": self.error.to_string(),
-                "uuid": self.req_id.to_string()
+                "req_id": self.req_id.to_string()
             }
         }));
         let mut response = (status_code, body).into_response();
@@ -105,6 +107,18 @@ impl From<surrealdb::Error> for Error {
     fn from(value: surrealdb::Error) -> Self {
         Self::SurrealDb {
             source: value.to_string(),
+        }
+    }
+}
+
+pub trait IntoApiError {
+    fn into_api_error(self, ctx: &Ctx) -> ApiError;
+}
+impl<E: Into<crate::error::Error>> IntoApiError for E {
+    fn into_api_error(self, ctx: &Ctx) -> ApiError {
+        ApiError {
+            req_id: ctx.req_id(),
+            error: self.into(),
         }
     }
 }

@@ -33,6 +33,6 @@ pub async fn mw_req_logger(ctx: Ctx, uri: Uri, req_method: Method, res: Response
             .to_string(),
     };
     println!("->> {:<12} - mw_req_logger:", "LOGGER",);
-    println!("{:4}{}", "", json!(log));
+    println!("{:4}{}\n", "", json!(log));
     res
 }

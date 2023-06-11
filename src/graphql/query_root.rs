@@ -1,5 +1,9 @@
-use crate::model::{ModelController, Ticket};
-use async_graphql::{Context, Object, Result};
+mod tickets_no_db_query;
+mod tickets_query;
+
+use async_graphql::Object;
+use tickets_no_db_query::TicketsNoDbQuery;
+use tickets_query::TicketsQuery;
 
 pub struct QueryRoot;
 #[Object]
@@ -12,13 +16,8 @@ impl QueryRoot {
     async fn tickets(&self) -> TicketsQuery {
         TicketsQuery
     }
-}
 
-struct TicketsQuery;
-#[Object]
-impl TicketsQuery {
-    async fn list(&self, ctx: &Context<'_>) -> Result<Vec<Ticket>> {
-        let mc = ctx.data::<ModelController>()?;
-        Ok(mc.list_tickets().await)
+    async fn tickets_no_db(&self) -> TicketsNoDbQuery {
+        TicketsNoDbQuery
     }
 }

@@ -1,8 +1,8 @@
-use crate::{
-    ctx::Ctx,
-    model::{CreateTicketInput, ModelController, Ticket},
-};
-use async_graphql::{Context, Object, Result};
+mod tickets_mutation;
+mod tickets_no_db_mutation;
+use async_graphql::Object;
+use tickets_mutation::TicketsMutation;
+use tickets_no_db_mutation::TicketsNoDbMutation;
 
 pub struct MutationRoot;
 #[Object]
@@ -10,24 +10,8 @@ impl MutationRoot {
     async fn tickets(&self) -> TicketsMutation {
         TicketsMutation
     }
-}
 
-struct TicketsMutation;
-#[Object]
-impl TicketsMutation {
-    async fn create_ticket(
-        &self,
-        ctx: &Context<'_>,
-        ct_input: CreateTicketInput,
-    ) -> Result<Ticket> {
-        let mc = ctx.data::<ModelController>()?;
-        let ctx = ctx.data::<Ctx>()?;
-        Ok(mc.create_ticket(ctx, ct_input).await?)
-    }
-
-    async fn delete_ticket(&self, ctx: &Context<'_>, id: u64) -> Result<Ticket> {
-        let mc = ctx.data::<ModelController>()?;
-        let ctx = ctx.data::<Ctx>()?;
-        Ok(mc.delete_ticket(ctx, id).await?)
+    async fn tickets_no_db(&self) -> TicketsNoDbMutation {
+        TicketsNoDbMutation
     }
 }

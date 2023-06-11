@@ -10,13 +10,19 @@
   - Errors respond with request IDs
   - Debug and Display variants for server and client
 - Spellcheck with cspell
-- Graphql with async-graphql
+- GraphQl with async-graphql
 - Request logs
   - For every request one log
   - Include req_id, error, logged in user
   - For both REST and GraphQL
 - CI with github actions
+- SurrealDb
+  - in memory, no setup
+  - service structure callable from both rest and GraphQl
+  - no-db workaround in both rest routes and GraphQl for testing and debugging
+    without a working SurrealDb instance
 
 ## TODOs:
 
-- DB with maybe surrealDb
+- rename routes_tickets to no_db
+- reimplement with new DB service
