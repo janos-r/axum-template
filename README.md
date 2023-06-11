@@ -21,8 +21,3 @@
   - service structure callable from both rest and GraphQl
   - no-db workaround in both rest routes and GraphQl for testing and debugging
     without a working SurrealDb instance
-
-## TODOs:
-
-- rename routes_tickets to no_db
-- reimplement with new DB service

@@ -60,7 +60,10 @@ async fn main() -> Result<()> {
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
 
     // REST
-    let routes_tickets_no_db = web::routes_tickets::routes(mc.clone())
+    let routes_tickets_no_db = web::routes_tickets_no_db::routes(mc.clone())
+        .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
+
+    let routes_tickets = web::routes_tickets::routes(DB.clone())
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
 
     let routes_all = Router::new()
@@ -70,6 +73,7 @@ async fn main() -> Result<()> {
         .merge(web::routes_login::routes())
         .merge(gql)
         .nest("/noDb", routes_tickets_no_db)
+        .nest("/api", routes_tickets)
         .layer(middleware::map_response(mw_req_logger))
         // This is where Ctx gets created, with every new request
         .layer(middleware::from_fn_with_state(
