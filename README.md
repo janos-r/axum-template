@@ -1,4 +1,25 @@
-# Axum server template
+<p align="center">
+    <img src="assets/logo.png" />
+</p>
+
+## [📜️ Article on my web](https://radim.xyz/project/axum-template/)
+
+---
+
+# Axum server, Async-GraphQl, SurrealDB template
+
+Run without any prior setup, DB is in memory:
+
+```sh
+cargo run
+```
+
+To use routes other than `/hello`, login with:
+
+```json
+// POST on localhost:8080/api/login
+{ "username": "demo1", "pwd": "welcome" }
+```
 
 ## Features implemented
 
@@ -21,3 +42,5 @@
   - service structure callable from both rest and GraphQl
   - no-db workaround in both rest routes and GraphQl for testing and debugging
     without a working SurrealDb instance
+
+Detailed description linked in article above.

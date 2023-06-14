@@ -62,10 +62,10 @@ async fn main() -> Result<()> {
     // REST
     let routes_tickets_no_db = web::routes_tickets_no_db::routes(mc.clone())
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
-
     let routes_tickets = web::routes_tickets::routes(DB.clone())
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
 
+    // Main router
     let routes_all = Router::new()
         // No requirements
         .merge(web::routes_hello::routes())
