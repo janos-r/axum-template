@@ -24,6 +24,7 @@ pub enum Error {
     Serde { source: String },
     SurrealDb { source: String },
     SurrealDbNoResult { source: String, id: String },
+    SurrealDbParse { source: String, id: String },
 }
 
 /// ApiError has to have the req_id to report to the client and implements IntoResponse.
@@ -69,6 +70,7 @@ impl fmt::Display for Error {
             Self::AuthFailCtxNotInRequestExt => write!(f, "{INTERNAL}"),
             Self::SurrealDb { .. } => write!(f, "{INTERNAL}"),
             Self::SurrealDbNoResult { id, .. } => write!(f, "No result for id {id}"),
+            Self::SurrealDbParse { id, .. } => write!(f, "Couldn't parse id {id}"),
         }
     }
 }
@@ -78,15 +80,15 @@ impl IntoResponse for ApiError {
     fn into_response(self) -> axum::response::Response {
         println!("->> {:<12} - into_response - {self:?}", "ERROR");
         let status_code = match self.error {
-            Error::TicketDeleteFailIdNotFound { .. } | Error::Serde { .. } => {
-                StatusCode::BAD_REQUEST
-            }
+            Error::TicketDeleteFailIdNotFound { .. }
+            | Error::Serde { .. }
+            | Error::SurrealDbNoResult { .. }
+            | Error::SurrealDbParse { .. } => StatusCode::BAD_REQUEST,
             Error::Generic { .. }
             | Error::LoginFail
             | Error::AuthFailNoAuthTokenCookie
             | Error::AuthFailTokenWrongFormat
             | Error::AuthFailCtxNotInRequestExt
-            | Error::SurrealDbNoResult { .. }
             | Error::SurrealDb { .. } => StatusCode::FORBIDDEN,
         };
         let body = Json(json!({
@@ -126,6 +128,14 @@ impl From<serde_json::Error> for Error {
 
 impl From<surrealdb::Error> for Error {
     fn from(value: surrealdb::Error) -> Self {
+        Self::SurrealDb {
+            source: value.to_string(),
+        }
+    }
+}
+
+impl From<surrealdb::error::Db> for Error {
+    fn from(value: surrealdb::error::Db) -> Self {
         Self::SurrealDb {
             source: value.to_string(),
         }

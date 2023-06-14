@@ -1,6 +1,6 @@
 use crate::{
     ctx::Ctx,
-    error::{ApiError, ApiResult},
+    error::{ApiError, ApiResult, Error},
     Db,
 };
 use async_graphql::{ComplexObject, InputObject, SimpleObject};
@@ -52,12 +52,21 @@ impl<'a> TicketService<'a> {
     }
 
     pub async fn delete_ticket(&self, id: String) -> ApiResult<Ticket> {
+        // NOTE: If the input is parsed from Thing format
+        // let t = thing(&id).map_err(|e| ApiError {
+        //     req_id: self.ctx.req_id(),
+        //     error: Error::SurrealDbParse {
+        //         source: e.to_string(),
+        //         id: id.clone(),
+        //     },
+        // })?;
         self.db
+            // .delete(t)
             .delete(("tickets", &id))
             .await
             .map_err(|e| ApiError {
                 req_id: self.ctx.req_id(),
-                error: crate::error::Error::SurrealDbNoResult {
+                error: Error::SurrealDbNoResult {
                     source: e.to_string(),
                     id,
                 },
