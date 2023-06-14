@@ -23,6 +23,7 @@ pub enum Error {
     AuthFailCtxNotInRequestExt,
     Serde { source: String },
     SurrealDb { source: String },
+    SurrealDbNoResult { source: String, id: String },
 }
 
 /// ApiError has to have the req_id to report to the client and implements IntoResponse.
@@ -67,6 +68,7 @@ impl fmt::Display for Error {
             Self::Serde { source } => write!(f, "Serde error - {source}"),
             Self::AuthFailCtxNotInRequestExt => write!(f, "{INTERNAL}"),
             Self::SurrealDb { .. } => write!(f, "{INTERNAL}"),
+            Self::SurrealDbNoResult { id, .. } => write!(f, "No result for id {id}"),
         }
     }
 }
@@ -84,6 +86,7 @@ impl IntoResponse for ApiError {
             | Error::AuthFailNoAuthTokenCookie
             | Error::AuthFailTokenWrongFormat
             | Error::AuthFailCtxNotInRequestExt
+            | Error::SurrealDbNoResult { .. }
             | Error::SurrealDb { .. } => StatusCode::FORBIDDEN,
         };
         let body = Json(json!({

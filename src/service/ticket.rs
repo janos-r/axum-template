@@ -18,7 +18,7 @@ pub struct Ticket {
 #[ComplexObject]
 impl Ticket {
     async fn id(&self) -> String {
-        self.id.as_ref().expect("id").to_raw()
+        self.id.as_ref().map(|t| &t.id).expect("id").to_raw()
     }
 }
 
@@ -53,8 +53,14 @@ impl<'a> TicketService<'a> {
 
     pub async fn delete_ticket(&self, id: String) -> ApiResult<Ticket> {
         self.db
-            .delete(("tickets", id))
+            .delete(("tickets", &id))
             .await
-            .map_err(ApiError::from(self.ctx))
+            .map_err(|e| ApiError {
+                req_id: self.ctx.req_id(),
+                error: crate::error::Error::SurrealDbNoResult {
+                    source: e.to_string(),
+                    id,
+                },
+            })
     }
 }
