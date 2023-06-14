@@ -24,19 +24,18 @@ pub async fn graphql_handler(
     let mut gql_resp: async_graphql::Response = schema.execute(req.into_inner().data(ctx)).await;
 
     // Remove error extensions and deserialize errors
-    let mut errors = Vec::new();
-    for error in &mut gql_resp.errors {
-        let Some(extensions) = &mut error.extensions else { continue };
+    let mut error: Option<Error> = None;
+    for gql_error in &mut gql_resp.errors {
+        let Some(extensions) = &mut gql_error.extensions else { continue };
         let Some(value) = extensions.get(ERROR_SER_KEY) else { continue };
         let Value::String(s) = value else { continue };
-        let error: Error = serde_json::from_str(s).unwrap_or_else(Error::from);
-        errors.push(error);
+        error = Some(serde_json::from_str(s).unwrap_or_else(Error::from));
         extensions.unset(ERROR_SER_KEY);
+        break;
     }
-    // Normally only this is recommended as the result of the handler, but it seams ok to repeatedly call .into_response
     let mut response = async_graphql_axum::GraphQLResponse::from(gql_resp).into_response();
-    // Insert the first real Error into the response - for the logger
-    if let Some(e) = errors.into_iter().next() {
+    // Insert the real Error into the response - for the logger
+    if let Some(e) = error {
         response.extensions_mut().insert(e);
     }
     response
