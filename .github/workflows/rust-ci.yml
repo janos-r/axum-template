@@ -13,6 +13,8 @@ jobs:
         run: cargo fmt --check
       - name: Cargo check
         run: cargo check
+      - name: Cargo test
+        run: cargo test
       - uses: actions/setup-node@v3
         with:
           node-version: 18

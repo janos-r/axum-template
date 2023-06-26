@@ -12,7 +12,7 @@ use surrealdb::sql::Thing;
 pub struct Ticket {
     #[graphql(skip)]
     pub id: Option<Thing>,
-    pub creator_id: u64,
+    pub creator: String,
     pub title: String,
 }
 #[ComplexObject]
@@ -44,7 +44,7 @@ impl<'a> TicketService<'a> {
             .create("tickets")
             .content(Ticket {
                 id: None,
-                creator_id: self.ctx.user_id()?,
+                creator: self.ctx.user_id()?,
                 title: ct_input.title,
             })
             .await

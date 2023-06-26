@@ -11,7 +11,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Clone, Debug, Serialize, Deserialize, SimpleObject)]
 pub struct TicketNoDb {
     pub id: u64,
-    pub creator_id: u64,
+    pub creator: String,
     pub title: String,
 }
 
@@ -36,7 +36,7 @@ impl ModelController {
         let id = store.len() as u64;
         let ticket = TicketNoDb {
             id,
-            creator_id: ctx.user_id()?,
+            creator: ctx.user_id()?,
             title: ct_input.title,
         };
         store.push(Some(ticket.clone()));

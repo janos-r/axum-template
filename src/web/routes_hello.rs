@@ -15,6 +15,7 @@ struct HelloParams {
     name: Option<String>,
 }
 
+// on /hello?name=test
 async fn handle_hello(Query(params): Query<HelloParams>) -> impl IntoResponse {
     println!("->> {:<12} - handler_hello - {params:?}", "HANDLER");
     let name = params.name.as_deref().unwrap_or("World");

@@ -4,19 +4,19 @@ use uuid::Uuid;
 
 #[derive(Clone, Debug)]
 pub struct Ctx {
-    result_user_id: Result<u64>,
+    result_user_id: Result<String>,
     req_id: Uuid,
 }
 
 impl Ctx {
-    pub fn new(result_user_id: Result<u64>, uuid: Uuid) -> Self {
+    pub fn new(result_user_id: Result<String>, uuid: Uuid) -> Self {
         Self {
             result_user_id,
             req_id: uuid,
         }
     }
 
-    pub fn user_id(&self) -> ApiResult<u64> {
+    pub fn user_id(&self) -> ApiResult<String> {
         self.result_user_id.clone().map_err(|error| ApiError {
             error,
             req_id: self.req_id,

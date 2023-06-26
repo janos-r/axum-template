@@ -2,3 +2,5 @@
 Graphi
 graphiql
 surrealdb
+hmac
+Hmac

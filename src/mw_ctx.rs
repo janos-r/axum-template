@@ -1,12 +1,21 @@
-use crate::{
-    ctx::Ctx, error::Error, error::Result, service::ticket_no_db::ModelController, ApiResult,
-};
+use crate::{ctx::Ctx, error::Error, error::Result, ApiResult, Db};
 use axum::{extract::State, http::Request, middleware::Next, response::Response};
-use lazy_regex::regex_captures;
+use hmac::Hmac;
+use jwt::VerifyWithKey;
+use sha2::Sha256;
+use std::collections::BTreeMap;
 use tower_cookies::{Cookie, Cookies};
 use uuid::Uuid;
 
-pub const AUTH_TOKEN: &str = "auth-token";
+#[derive(Clone)]
+pub struct CtxState {
+    // NOTE: with DB, because a real login would check the DB
+    pub _db: Db,
+    pub key: Hmac<Sha256>,
+}
+
+pub const JWT_KEY: &str = "jwt";
+pub const JWT_AUTH: &str = "auth";
 
 pub async fn mw_require_auth<B>(ctx: Ctx, req: Request<B>, next: Next<B>) -> ApiResult<Response> {
     println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
@@ -15,7 +24,7 @@ pub async fn mw_require_auth<B>(ctx: Ctx, req: Request<B>, next: Next<B>) -> Api
 }
 
 pub async fn mw_ctx_constructor<B>(
-    _mc: State<ModelController>,
+    State(CtxState { _db, key }): State<CtxState>,
     cookies: Cookies,
     mut req: Request<B>,
     next: Next<B>,
@@ -23,17 +32,14 @@ pub async fn mw_ctx_constructor<B>(
     println!("->> {:<12} - mw_ctx_constructor", "MIDDLEWARE");
 
     let uuid = Uuid::new_v4();
-    let result_user_id: Result<u64> = match extract_token(&cookies) {
-        Ok((user_id, _exp, _sign)) => Ok(user_id),
-        Err(err) => {
-            // Remove a wrongly formatted cookie
-            if err == Error::AuthFailTokenWrongFormat {
-                cookies.remove(Cookie::named(AUTH_TOKEN))
-            }
-            Err(err)
+    let result_user_id: Result<String> = extract_token(key, &cookies).map_err(|err| {
+        // Remove an invalid cookie
+        if let Error::AuthFailJwtInvalid { .. } = err {
+            cookies.remove(Cookie::named(JWT_KEY))
         }
-    };
-    // TODO: token validation with DB
+        err
+    });
+    // NOTE: DB should be checked here
 
     // Store Ctx in the request extension, for extracting in rest handlers
     let ctx = Ctx::new(result_user_id, uuid);
@@ -42,29 +48,47 @@ pub async fn mw_ctx_constructor<B>(
     next.run(req).await
 }
 
-type Token = (u64, String, String);
-fn parse_token(token: &str) -> Result<Token> {
-    let (_whole, user_id, exp, sign) = regex_captures!(r#"^user-(\d)\.(.+)\.(.+)"#, token)
-        .ok_or(Error::AuthFailTokenWrongFormat)?;
-    let user_id: u64 = user_id
-        .parse()
-        .map_err(|_| Error::AuthFailTokenWrongFormat)?;
-    Ok((user_id, exp.to_owned(), sign.to_owned()))
+fn verify_token(key: Hmac<Sha256>, token: &str) -> Result<String> {
+    let claims: BTreeMap<String, String> = token.verify_with_key(&key)?;
+    claims
+        .get(JWT_AUTH)
+        .ok_or(Error::AuthFailJwtWithoutAuth)
+        .map(String::from)
 }
-fn extract_token(cookies: &Cookies) -> Result<Token> {
+fn extract_token(key: Hmac<Sha256>, cookies: &Cookies) -> Result<String> {
     cookies
-        .get(AUTH_TOKEN)
-        .ok_or(Error::AuthFailNoAuthTokenCookie)
-        .and_then(|c| parse_token(c.value()))
+        .get(JWT_KEY)
+        .ok_or(Error::AuthFailNoJwtCookie)
+        .and_then(|cookie| verify_token(key, cookie.value()))
 }
 
 #[cfg(test)]
 mod tests {
+    use crate::mw_ctx::JWT_AUTH;
+    use hmac::{Hmac, Mac};
+    use jwt::SignWithKey;
+    use sha2::Sha256;
+    use std::collections::BTreeMap;
+
+    const SECRET: &[u8] = b"some-secret";
+    const SOMEONE: &str = "someone";
+    const TOKEN: &str =
+    // cspell:disable-next-line
+        "eyJhbGciOiJIUzI1NiJ9.eyJhdXRoIjoic29tZW9uZSJ9.1g78DkCARXRPLRlRbzv_nKZZuykVr5_nwPaifpVTvvM";
+
     #[test]
-    fn parse_token() {
-        let (id, exp, sign) = super::parse_token("user-1.exp.sign").unwrap();
-        assert_eq!(id, 1);
-        assert_eq!(exp, "exp");
-        assert_eq!(sign, "sign");
+    fn jwt_sign() {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(SECRET).unwrap();
+        let mut claims = BTreeMap::new();
+        claims.insert(JWT_AUTH, SOMEONE);
+        let token_str = claims.sign_with_key(&key).unwrap();
+        assert_eq!(token_str, TOKEN);
+    }
+
+    #[test]
+    fn jwt_verify() {
+        let key: Hmac<Sha256> = Hmac::new_from_slice(SECRET).unwrap();
+        let user_id = super::verify_token(key, TOKEN).unwrap();
+        assert_eq!(user_id, SOMEONE);
     }
 }

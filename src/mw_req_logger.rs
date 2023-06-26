@@ -12,7 +12,7 @@ struct RequestLog {
     req_method: String,
     req_path: String,
     #[serde(skip_serializing_if = "Option::is_none")]
-    user: Option<u64>,
+    user: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     error: Option<String>,
     timestamp: String,

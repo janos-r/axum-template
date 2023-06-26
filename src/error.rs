@@ -18,8 +18,9 @@ pub enum Error {
     Generic { description: String },
     LoginFail,
     TicketDeleteFailIdNotFound { id: u64 },
-    AuthFailNoAuthTokenCookie,
-    AuthFailTokenWrongFormat,
+    AuthFailNoJwtCookie,
+    AuthFailJwtInvalid { source: String },
+    AuthFailJwtWithoutAuth,
     AuthFailCtxNotInRequestExt,
     Serde { source: String },
     SurrealDb { source: String },
@@ -62,8 +63,8 @@ impl fmt::Display for Error {
             Self::Generic { description } => write!(f, "{description}"),
             Self::LoginFail => write!(f, "Login fail"),
             Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
-            Self::AuthFailNoAuthTokenCookie => write!(f, "You are not logged in"),
-            Self::AuthFailTokenWrongFormat => {
+            Self::AuthFailNoJwtCookie => write!(f, "You are not logged in"),
+            Self::AuthFailJwtInvalid { .. } | Self::AuthFailJwtWithoutAuth => {
                 write!(f, "Can't parse token, wrong format")
             }
             Self::Serde { source } => write!(f, "Serde error - {source}"),
@@ -86,9 +87,10 @@ impl IntoResponse for ApiError {
             | Error::SurrealDbParse { .. } => StatusCode::BAD_REQUEST,
             Error::Generic { .. }
             | Error::LoginFail
-            | Error::AuthFailNoAuthTokenCookie
-            | Error::AuthFailTokenWrongFormat
+            | Error::AuthFailNoJwtCookie
+            | Error::AuthFailJwtInvalid { .. }
             | Error::AuthFailCtxNotInRequestExt
+            | Error::AuthFailJwtWithoutAuth
             | Error::SurrealDb { .. } => StatusCode::FORBIDDEN,
         };
         let body = Json(json!({
@@ -137,6 +139,15 @@ impl From<surrealdb::Error> for Error {
 impl From<surrealdb::error::Db> for Error {
     fn from(value: surrealdb::error::Db) -> Self {
         Self::SurrealDb {
+            source: value.to_string(),
+        }
+    }
+}
+
+impl From<jwt::error::Error> for Error {
+    fn from(value: jwt::error::Error) -> Self {
+        // TODO: handle better - tell on expiration etc
+        Self::AuthFailJwtInvalid {
             source: value.to_string(),
         }
     }
