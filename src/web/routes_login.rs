@@ -1,10 +1,10 @@
-use crate::mw_ctx::{CtxState, JWT_AUTH, JWT_KEY};
+use crate::mw_ctx::{Claims, CtxState, JWT_KEY};
 use crate::{ctx::Ctx, error::ApiError, error::Error, ApiResult};
 use axum::extract::State;
 use axum::{routing::post, Json, Router};
-use jwt::SignWithKey;
+use chrono::{Duration, Utc};
+use jsonwebtoken::{encode, Header};
 use serde::{Deserialize, Serialize};
-use std::collections::BTreeMap;
 use tower_cookies::{Cookie, Cookies};
 
 pub fn routes(state: CtxState) -> Router {
@@ -28,7 +28,7 @@ struct LoginResult {
 }
 
 async fn api_login(
-    State(CtxState { _db, key }): State<CtxState>,
+    State(CtxState { _db, key_enc, .. }): State<CtxState>,
     cookies: Cookies,
     ctx: Ctx,
     payload: Json<LoginInput>,
@@ -53,15 +53,20 @@ async fn api_login(
         });
     };
 
-    let mut claims = BTreeMap::new();
-    claims.insert(JWT_AUTH, mock_user.email);
-    // TODO: don't know how to set expiration
-    let token_str = claims.sign_with_key(&key).unwrap();
+    // NOTE: set to a reasonable number after testing
+    // NOTE when testing: the default validation.leeway is 60s
+    let exp = Utc::now() + Duration::minutes(1);
+    let claims = Claims {
+        exp: exp.timestamp() as usize,
+        auth: mock_user.email,
+    };
+    let token_str = encode(&Header::default(), &claims, &key_enc).expect("JWT encode should work");
 
     cookies.add(
         Cookie::build(JWT_KEY, token_str)
             // if not set, the path defaults to the path from which it was called - prohibiting gql on root if login is on /api
             .path("/")
+            .http_only(true)
             .finish(),
     );
 

@@ -24,9 +24,11 @@ To use routes other than `/hello`, login with:
 ## Features implemented
 
 - Axum
-  - JWT, login with cookies
   - Query and Path get examples
   - REST CRUD with in-memory mock model
+- JWT
+  - login with expiration
+  - saved in cookies HttpOnly
 - Manual Error handling without 3rd party crates
   - Errors respond with request IDs
   - Debug and Display variants for server and client

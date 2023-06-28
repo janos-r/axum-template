@@ -20,7 +20,6 @@ pub enum Error {
     TicketDeleteFailIdNotFound { id: u64 },
     AuthFailNoJwtCookie,
     AuthFailJwtInvalid { source: String },
-    AuthFailJwtWithoutAuth,
     AuthFailCtxNotInRequestExt,
     Serde { source: String },
     SurrealDb { source: String },
@@ -64,8 +63,8 @@ impl fmt::Display for Error {
             Self::LoginFail => write!(f, "Login fail"),
             Self::TicketDeleteFailIdNotFound { id } => write!(f, "Ticket id {id} not found"),
             Self::AuthFailNoJwtCookie => write!(f, "You are not logged in"),
-            Self::AuthFailJwtInvalid { .. } | Self::AuthFailJwtWithoutAuth => {
-                write!(f, "Can't parse token, wrong format")
+            Self::AuthFailJwtInvalid { .. } => {
+                write!(f, "The provided JWT token is not valid")
             }
             Self::Serde { source } => write!(f, "Serde error - {source}"),
             Self::AuthFailCtxNotInRequestExt => write!(f, "{INTERNAL}"),
@@ -90,7 +89,6 @@ impl IntoResponse for ApiError {
             | Error::AuthFailNoJwtCookie
             | Error::AuthFailJwtInvalid { .. }
             | Error::AuthFailCtxNotInRequestExt
-            | Error::AuthFailJwtWithoutAuth
             | Error::SurrealDb { .. } => StatusCode::FORBIDDEN,
         };
         let body = Json(json!({
@@ -144,9 +142,8 @@ impl From<surrealdb::error::Db> for Error {
     }
 }
 
-impl From<jwt::error::Error> for Error {
-    fn from(value: jwt::error::Error) -> Self {
-        // TODO: handle better - tell on expiration etc
+impl From<jsonwebtoken::errors::Error> for Error {
+    fn from(value: jsonwebtoken::errors::Error) -> Self {
         Self::AuthFailJwtInvalid {
             source: value.to_string(),
         }

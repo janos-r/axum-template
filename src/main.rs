@@ -17,11 +17,10 @@ use error::{ApiResult, Result};
 use graphql::{
     graphiql, graphql_handler, mutation_root::MutationRoot, query_root::QueryRoot, ApiSchema,
 };
-use hmac::{Hmac, Mac};
+use jsonwebtoken::{DecodingKey, EncodingKey};
 use mw_ctx::CtxState;
 use mw_req_logger::mw_req_logger;
 use service::ticket_no_db::ModelController;
-use sha2::Sha256;
 use std::net::{Ipv4Addr, SocketAddr};
 use surrealdb::{
     engine::local::{Db as LocalDb, Mem},
@@ -68,12 +67,14 @@ async fn main() -> Result<()> {
     let routes_tickets = web::routes_tickets::routes(DB.clone())
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
 
-    // Load salt and create secret key for JWT
-    let salt = "some-secret".as_bytes();
-    let key: Hmac<Sha256> = Hmac::new_from_slice(salt).unwrap();
+    // Load secret and create secret key for JWT
+    let secret = "some-secret".as_bytes();
+    let key_enc = EncodingKey::from_secret(secret);
+    let key_dec = DecodingKey::from_secret(secret);
     let ctx_state = CtxState {
         _db: DB.clone(),
-        key,
+        key_enc,
+        key_dec,
     };
 
     // Main router
