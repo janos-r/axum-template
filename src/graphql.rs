@@ -26,8 +26,12 @@ pub async fn graphql_handler(
     // Remove error extensions and deserialize errors
     let mut error: Option<Error> = None;
     for gql_error in &mut gql_resp.errors {
-        let Some(extensions) = &mut gql_error.extensions else { continue };
-        let Some(value) = extensions.get(ERROR_SER_KEY) else { continue };
+        let Some(extensions) = &mut gql_error.extensions else {
+            continue;
+        };
+        let Some(value) = extensions.get(ERROR_SER_KEY) else {
+            continue;
+        };
         let Value::String(s) = value else { continue };
         error = Some(serde_json::from_str(s).unwrap_or_else(Error::from));
         extensions.unset(ERROR_SER_KEY);

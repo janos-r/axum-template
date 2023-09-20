@@ -20,6 +20,7 @@ use graphql::{
 use jsonwebtoken::{DecodingKey, EncodingKey};
 use mw_ctx::CtxState;
 use mw_req_logger::mw_req_logger;
+use once_cell::sync::Lazy;
 use service::ticket_no_db::ModelController;
 use std::net::{Ipv4Addr, SocketAddr};
 use surrealdb::{
@@ -29,8 +30,8 @@ use surrealdb::{
 use tower_cookies::CookieManagerLayer;
 use tower_http::services::ServeDir;
 
-type Db = surrealdb::Surreal<LocalDb>;
-static DB: Db = Surreal::init();
+type Db = Surreal<LocalDb>;
+static DB: Lazy<Db> = Lazy::new(Surreal::init);
 
 #[tokio::main]
 async fn main() -> Result<()> {

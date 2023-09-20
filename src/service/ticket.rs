@@ -48,6 +48,7 @@ impl<'a> TicketService<'a> {
                 title: ct_input.title,
             })
             .await
+            .map(|v: Vec<Ticket>| v.into_iter().next().expect("created ticket"))
             .map_err(ApiError::from(self.ctx))
     }
 
@@ -60,16 +61,26 @@ impl<'a> TicketService<'a> {
         //         id: id.clone(),
         //     },
         // })?;
-        self.db
+        match self
+            .db
             // .delete(t)
             .delete(("tickets", &id))
             .await
-            .map_err(|e| ApiError {
+        {
+            Ok(option) => option.ok_or(ApiError {
+                req_id: self.ctx.req_id(),
+                error: Error::SurrealDbNoResult {
+                    source: "none".to_string(),
+                    id,
+                },
+            }),
+            Err(e) => Err(ApiError {
                 req_id: self.ctx.req_id(),
                 error: Error::SurrealDbNoResult {
                     source: e.to_string(),
                     id,
                 },
-            })
+            }),
+        }
     }
 }

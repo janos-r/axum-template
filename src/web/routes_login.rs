@@ -54,8 +54,8 @@ async fn api_login(
     };
 
     // NOTE: set to a reasonable number after testing
-    // NOTE when testing: the default validation.leeway is 60s
-    let exp = Utc::now() + Duration::minutes(1);
+    // NOTE when testing: the default validation.leeway is 2min
+    let exp = Utc::now() + Duration::minutes(2);
     let claims = Claims {
         exp: exp.timestamp() as usize,
         auth: mock_user.email,
