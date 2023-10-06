@@ -134,14 +134,6 @@ impl From<surrealdb::Error> for Error {
     }
 }
 
-impl From<surrealdb::error::Db> for Error {
-    fn from(value: surrealdb::error::Db) -> Self {
-        Self::SurrealDb {
-            source: value.to_string(),
-        }
-    }
-}
-
 impl From<jsonwebtoken::errors::Error> for Error {
     fn from(value: jsonwebtoken::errors::Error) -> Self {
         Self::AuthFailJwtInvalid {

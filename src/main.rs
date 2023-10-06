@@ -93,7 +93,7 @@ async fn main() -> Result<()> {
             ctx_state.clone(),
             mw_ctx::mw_ctx_constructor,
         ))
-        // Layers are executed from bottom up, so CookieManager has to me under ctx_constructor
+        // Layers are executed from bottom up, so CookieManager has to be under ctx_constructor
         .layer(CookieManagerLayer::new())
         .fallback_service(routes_static());
 
