@@ -22,17 +22,14 @@ struct LoginInput {
 struct LoginSuccess {
     success: bool,
 }
-#[derive(Debug, Serialize)]
-struct LoginResult {
-    result: LoginSuccess,
-}
+const LOGIN_SUCCESS: LoginSuccess = LoginSuccess { success: true };
 
 async fn api_login(
     State(CtxState { _db, key_enc, .. }): State<CtxState>,
     cookies: Cookies,
     ctx: Ctx,
     payload: Json<LoginInput>,
-) -> ApiResult<Json<LoginResult>> {
+) -> ApiResult<Json<LoginSuccess>> {
     println!("->> {:<12} - api_login", "HANDLER");
 
     // NOTE: DB should be checked here
@@ -70,7 +67,5 @@ async fn api_login(
             .finish(),
     );
 
-    Ok(Json(LoginResult {
-        result: LoginSuccess { success: true },
-    }))
+    Ok(Json(LOGIN_SUCCESS))
 }
