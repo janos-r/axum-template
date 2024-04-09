@@ -38,20 +38,12 @@ impl std::error::Error for Error {}
 // Implementing Display for it triggers a generic impl From ApiError for gql-Error on async-graphql - and we want to implement it ourselves, to always include extensions on Errors. It would create conflicting implementations.
 
 // for slightly less verbose error mappings
-pub trait IntoApiError {
-    fn into_api_error(self, ctx: &Ctx) -> ApiError;
-}
-impl<E: Into<Error>> IntoApiError for E {
-    fn into_api_error(self, ctx: &Ctx) -> ApiError {
-        ApiError {
-            req_id: ctx.req_id(),
-            error: self.into(),
-        }
-    }
-}
 impl ApiError {
     pub fn from<T: Into<Error>>(ctx: &Ctx) -> impl FnOnce(T) -> ApiError + '_ {
-        |e| e.into_api_error(ctx)
+        |err| ApiError {
+            req_id: ctx.req_id(),
+            error: err.into(),
+        }
     }
 }
 
