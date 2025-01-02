@@ -59,13 +59,11 @@ async fn api_login(
     };
     let token_str = encode(&Header::default(), &claims, &key_enc).expect("JWT encode should work");
 
-    cookies.add(
-        Cookie::build(JWT_KEY, token_str)
-            // if not set, the path defaults to the path from which it was called - prohibiting gql on root if login is on /api
-            .path("/")
-            .http_only(true)
-            .finish(),
-    );
+    let cookie = Cookie::build((JWT_KEY, token_str))
+        // if not set, the path defaults to the path from which it was called - prohibiting gql on root if login is on /api
+        .path("/")
+        .http_only(true);
+    cookies.add(cookie.into());
 
     Ok(Json(LOGIN_SUCCESS))
 }

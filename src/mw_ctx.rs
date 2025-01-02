@@ -1,5 +1,9 @@
 use crate::{ctx::Ctx, error::Error, error::Result, ApiResult, Db};
-use axum::{extract::State, http::Request, middleware::Next, response::Response};
+use axum::{
+    extract::{Request, State},
+    middleware::Next,
+    response::Response,
+};
 use jsonwebtoken::{decode, DecodingKey, EncodingKey, Validation};
 use serde::{Deserialize, Serialize};
 use tower_cookies::{Cookie, Cookies};
@@ -20,17 +24,17 @@ pub struct Claims {
     pub auth: String,
 }
 
-pub async fn mw_require_auth<B>(ctx: Ctx, req: Request<B>, next: Next<B>) -> ApiResult<Response> {
+pub async fn mw_require_auth(ctx: Ctx, req: Request, next: Next) -> ApiResult<Response> {
     println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
     ctx.user_id()?;
     Ok(next.run(req).await)
 }
 
-pub async fn mw_ctx_constructor<B>(
+pub async fn mw_ctx_constructor(
     State(CtxState { _db, key_dec, .. }): State<CtxState>,
     cookies: Cookies,
-    mut req: Request<B>,
-    next: Next<B>,
+    mut req: Request,
+    next: Next,
 ) -> Response {
     println!("->> {:<12} - mw_ctx_constructor", "MIDDLEWARE");
 
@@ -38,7 +42,7 @@ pub async fn mw_ctx_constructor<B>(
     let result_user_id: Result<String> = extract_token(key_dec, &cookies).map_err(|err| {
         // Remove an invalid cookie
         if let Error::AuthFailJwtInvalid { .. } = err {
-            cookies.remove(Cookie::named(JWT_KEY))
+            cookies.remove(Cookie::from(JWT_KEY))
         }
         err
     });

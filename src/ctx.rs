@@ -28,30 +28,20 @@ impl Ctx {
     }
 }
 
-// ugly but direct implementation from axum, until "async trait fn" are in stable rust, instead of importing some 3rd party macro
-// Extractor - makes it possible to specify Ctx as a param - fetches the result from the header parts extension
 impl<S: Send + Sync> FromRequestParts<S> for Ctx {
     type Rejection = ApiError;
-    fn from_request_parts<'life0, 'life1, 'async_trait>(
-        parts: &'life0 mut axum::http::request::Parts,
-        _state: &'life1 S,
-    ) -> core::pin::Pin<
-        Box<dyn core::future::Future<Output = ApiResult<Self>> + core::marker::Send + 'async_trait>,
-    >
-    where
-        'life0: 'async_trait,
-        'life1: 'async_trait,
-        Self: 'async_trait,
-    {
-        Box::pin(async {
-            println!(
-                "->> {:<12} - Ctx::from_request_parts - extract Ctx from extension",
-                "EXTRACTOR"
-            );
-            parts.extensions.get::<Ctx>().cloned().ok_or(ApiError {
-                req_id: Uuid::new_v4(),
-                error: Error::AuthFailCtxNotInRequestExt,
-            })
+
+    async fn from_request_parts(
+        parts: &mut axum::http::request::Parts,
+        _state: &S,
+    ) -> ApiResult<Self> {
+        println!(
+            "->> {:<12} - Ctx::from_request_parts - extract Ctx from extension",
+            "EXTRACTOR"
+        );
+        parts.extensions.get::<Ctx>().cloned().ok_or(ApiError {
+            req_id: Uuid::new_v4(),
+            error: Error::AuthFailCtxNotInRequestExt,
         })
     }
 }

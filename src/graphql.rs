@@ -23,7 +23,7 @@ pub async fn graphql_handler(
 ) -> axum::response::Response {
     let mut gql_resp: async_graphql::Response = schema.execute(req.into_inner().data(ctx)).await;
 
-    // Remove error extensions and deserialize errors
+    // Lift and deserialize the original error from extensions
     let mut error: Option<Error> = None;
     for gql_error in &mut gql_resp.errors {
         let Some(extensions) = &mut gql_error.extensions else {
@@ -37,8 +37,12 @@ pub async fn graphql_handler(
         extensions.unset(ERROR_SER_KEY);
         break;
     }
+
+    // TODO: waiting for async_graphql 8 to implement the newer axum_core version of 5.0 not 4.5 !!!
+    // graphql -> graphql_axum -> axum response
     let mut response = async_graphql_axum::GraphQLResponse::from(gql_resp).into_response();
-    // Insert the real Error into the response - for the logger
+
+    // Insert the original Error into the axum response - for the logger
     if let Some(e) = error {
         response.extensions_mut().insert(e);
     }

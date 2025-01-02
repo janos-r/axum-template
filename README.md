@@ -47,9 +47,6 @@ To use routes other than `/hello`, login with (5min expiration):
 
 Detailed description linked in article above.
 
-TODO: Future Axum 0.8 should implement async traits. So after it comes out, I
-will try to fix the Context extractor.
-
 ### Examples
 
 GQL create:
@@ -69,15 +66,15 @@ mutation {
 
 ```json
 {
-  "data": {
-    "tickets": {
-      "createTicket": {
-        "id": "6ki4tip4sx33gz622dc0",
-        "title": "First Ticket",
-        "creator": "joe@example.com"
-      }
+    "data": {
+        "tickets": {
+            "createTicket": {
+                "id": "6ki4tip4sx33gz622dc0",
+                "title": "First Ticket",
+                "creator": "joe@example.com"
+            }
+        }
     }
-  }
 }
 ```
 
@@ -99,25 +96,25 @@ Displays only the user-facing error text with the request ID to lookup in logs
 
 ```json
 {
-  "data": null,
-  "errors": [
-    {
-      "message": "No result for id 12345",
-      "locations": [
+    "data": null,
+    "errors": [
         {
-          "line": 3,
-          "column": 5
+            "message": "No result for id 12345",
+            "locations": [
+                {
+                    "line": 3,
+                    "column": 5
+                }
+            ],
+            "path": [
+                "tickets",
+                "deleteTicket"
+            ],
+            "extensions": {
+                "req_id": "bc857894-412c-4fc7-8040-ffdc1c03aaec"
+            }
         }
-      ],
-      "path": [
-        "tickets",
-        "deleteTicket"
-      ],
-      "extensions": {
-        "req_id": "bc857894-412c-4fc7-8040-ffdc1c03aaec"
-      }
-    }
-  ]
+    ]
 }
 ```
 
@@ -136,10 +133,10 @@ Same as with REST
 
 ```json
 {
-  "error": {
-    "error": "No result for id 999",
-    "req_id": "82afa2ab-01ff-4c93-b004-98f86f68e9d2"
-  }
+    "error": {
+        "error": "No result for id 999",
+        "req_id": "82afa2ab-01ff-4c93-b004-98f86f68e9d2"
+    }
 }
 ```
 

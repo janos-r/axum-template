@@ -98,12 +98,9 @@ async fn main() -> Result<()> {
         .fallback_service(routes_static());
 
     let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 8080));
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("->> LISTENING on {addr}\n");
-
-    axum::Server::bind(&addr)
-        .serve(routes_all.into_make_service())
-        .await
-        .unwrap();
+    axum::serve(listener, routes_all).await.unwrap();
 
     // fallback fs
     fn routes_static() -> Router {
