@@ -7,11 +7,7 @@ mod service;
 mod web;
 
 use async_graphql::{EmptySubscription, Schema};
-use axum::{
-    middleware,
-    routing::{get, get_service},
-    Router,
-};
+use axum::{middleware, routing::get, Router};
 use error::{ApiResult, Result};
 use graphql::{
     graphiql, graphql_handler, mutation_root::MutationRoot, query_root::QueryRoot, ApiSchema,
@@ -94,17 +90,13 @@ async fn main() -> Result<()> {
         ))
         // Layers are executed from bottom up, so CookieManager has to be under ctx_constructor
         .layer(CookieManagerLayer::new())
-        .fallback_service(routes_static());
+        // fallback fs, you can open for example `http://localhost:8080/Cargo.toml`
+        .fallback_service(ServeDir::new("./"));
 
     let addr = SocketAddr::from((Ipv4Addr::LOCALHOST, 8080));
     let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
     println!("->> LISTENING on {addr}\n");
     axum::serve(listener, routes_all).await.unwrap();
-
-    // fallback fs
-    fn routes_static() -> Router {
-        Router::new().nest_service("/", get_service(ServeDir::new("./")))
-    }
 
     Ok(())
 }
