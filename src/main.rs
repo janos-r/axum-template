@@ -8,7 +8,6 @@ mod web;
 
 use async_graphql::{EmptySubscription, Schema};
 use axum::{
-    extract::Extension,
     middleware,
     routing::{get, get_service},
     Router,
@@ -58,7 +57,7 @@ async fn main() -> Result<()> {
         .finish();
     let gql = Router::new()
         .route("/", get(graphiql).post(graphql_handler))
-        .layer(Extension(schema))
+        .with_state(schema)
         // Require auth to access gql
         .route_layer(middleware::from_fn(mw_ctx::mw_require_auth));
 

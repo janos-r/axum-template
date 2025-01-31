@@ -4,7 +4,7 @@ pub mod query_root;
 use crate::{ctx::Ctx, error::Error, error::ERROR_SER_KEY};
 use async_graphql::{http::GraphiQLSource, EmptySubscription, Schema, Value};
 use axum::{
-    extract::Extension,
+    extract::State,
     response::{self, IntoResponse},
 };
 use mutation_root::MutationRoot;
@@ -17,7 +17,7 @@ pub async fn graphiql() -> impl IntoResponse {
 }
 
 pub async fn graphql_handler(
-    schema: Extension<ApiSchema>,
+    State(schema): State<ApiSchema>,
     ctx: Ctx,
     req: async_graphql_axum::GraphQLRequest,
 ) -> axum::response::Response {
@@ -38,7 +38,6 @@ pub async fn graphql_handler(
         break;
     }
 
-    // TODO: waiting for async_graphql 8 to implement the newer axum_core version of 5.0 not 4.5 !!!
     // graphql -> graphql_axum -> axum response
     let mut response = async_graphql_axum::GraphQLResponse::from(gql_resp).into_response();
 
