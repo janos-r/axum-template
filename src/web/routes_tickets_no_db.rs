@@ -9,7 +9,7 @@ use axum::{Json, Router};
 pub fn routes(mc: ModelController) -> Router {
     Router::new()
         .route("/tickets", post(create_ticket).get(list_tickets))
-        .route("/tickets/:id", delete(delete_ticket))
+        .route("/tickets/{id}", delete(delete_ticket))
         .with_state(mc)
 }
 

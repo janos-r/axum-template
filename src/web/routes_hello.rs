@@ -7,7 +7,7 @@ use serde::Deserialize;
 pub fn routes() -> Router {
     Router::new()
         .route("/hello", get(handle_hello))
-        .route("/hello2/:x", get(handle_hello2))
+        .route("/hello2/{x}", get(handle_hello2))
 }
 
 #[derive(Debug, Deserialize)]

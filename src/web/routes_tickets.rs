@@ -8,7 +8,7 @@ use axum::{Json, Router};
 pub fn routes(db: Db) -> Router {
     Router::new()
         .route("/tickets", post(create_ticket).get(list_tickets))
-        .route("/tickets/:id", delete(delete_ticket))
+        .route("/tickets/{id}", delete(delete_ticket))
         .with_state(db)
 }
 
